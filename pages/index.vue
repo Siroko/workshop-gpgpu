@@ -1,8 +1,6 @@
 <template>
   <div class="container">
-    <div>
-      <three-scene />
-    </div>
+    <three-scene />
   </div>
 </template>
 
@@ -17,12 +15,10 @@ export default Vue.extend({
 
 <style>
 .container {
+  position: absolute;
   margin: 0;
   padding: 0;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
+  width: 100%;
+  height: 100%;
 }
 </style>

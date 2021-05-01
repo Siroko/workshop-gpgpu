@@ -27,11 +27,16 @@ export default class VueGL {
   private onResizeHandler: any
   private canvas: HTMLCanvasElement
   private ctx: WebGL2RenderingContext
+  private width: number
+  private height: number
 
   constructor(width: number, height: number, container: Element) {
     this.container = container
     this.canvas = document.createElement('canvas')
     this.ctx = this.canvas.getContext('webgl2')!!
+
+    this.width = window.innerWidth
+    this.height = window.innerHeight
 
     this.renderer = new WebGLRenderer({
       context: this.ctx,
@@ -41,16 +46,18 @@ export default class VueGL {
     this.container.appendChild(this.renderer.domElement)
 
     this.addEvents()
-    this.resize(width, height)
+    this.resize()
   }
 
   render(): void {
     this.renderer.render(this.scene, this.camera)
   }
 
-  resize(width: number, height: number): void {
-    this.renderer!!.setSize(width, height)
-    this.camera.aspect = width / height
+  resize(): void {
+    this.width = window.innerWidth
+    this.height = window.innerHeight
+    this.renderer.setSize(this.width, this.height)
+    this.camera.aspect = this.width / this.height
     this.camera.updateProjectionMatrix()
   }
 
