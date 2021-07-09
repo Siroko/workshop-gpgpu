@@ -1,17 +1,6 @@
 <template>
-  <div class="container">
-    <three-scene />
-  </div>
+  <div class="container">Hello world</div>
 </template>
-
-<script lang="ts">
-import Vue from 'vue'
-import ThreeScene from '~/components/molecule/ThreeScene.vue'
-
-export default Vue.extend({
-  components: { ThreeScene },
-})
-</script>
 
 <style>
 .container {

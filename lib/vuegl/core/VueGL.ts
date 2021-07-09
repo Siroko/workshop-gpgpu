@@ -26,20 +26,21 @@ export default class VueGL {
 
   private onResizeHandler: any
   private canvas: HTMLCanvasElement
-  private ctx: WebGL2RenderingContext
+  private gl: WebGL2RenderingContext | WebGLRenderingContext
   private width: number
   private height: number
 
   constructor(width: number, height: number, container: Element) {
     this.container = container
     this.canvas = document.createElement('canvas')
-    this.ctx = this.canvas.getContext('webgl2')!!
+    this.gl =
+      this.canvas.getContext('webgl2') || this.canvas.getContext('webgl')!!
 
     this.width = window.innerWidth
     this.height = window.innerHeight
 
     this.renderer = new WebGLRenderer({
-      context: this.ctx,
+      context: this.gl!!,
       canvas: this.canvas,
     })
     this.camera = new PerspectiveCamera(60, width / height, 0.1, 100)

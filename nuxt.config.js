@@ -50,5 +50,17 @@ export default {
   },
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
-  build: {},
+  build: {
+    /*
+     ** You can extend webpack config here
+     */
+    extend(config) {
+      config.module.rules.push({
+        enforce: 'pre',
+        test: /\.glsl$/,
+        loader: 'raw-loader',
+        exclude: /(node_modules)/,
+      })
+    },
+  },
 }
