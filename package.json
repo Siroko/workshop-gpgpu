@@ -1,5 +1,5 @@
 {
-  "name": "barcelona_office_stories",
+  "name": "workshop_gpgpu",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -31,6 +31,8 @@
     "eslint-plugin-prettier": "^3.3.1",
     "eslint-plugin-vue": "^7.7.0",
     "prettier": "^2.2.1",
-    "raw-loader": "^4.0.2"
+    "raw-loader": "^4.0.2",
+    "sass": "^1.34.1",
+    "sass-loader": "^10.2.0"
   }
 }
