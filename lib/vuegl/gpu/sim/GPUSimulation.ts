@@ -17,32 +17,52 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-import VueGL from '../core/VueGL'
-import GPUSimulation from '../gpu/sim/GPUSimulation'
+import {
+  Mesh,
+  RawShaderMaterial,
+  WebGLRenderer,
+  PlaneBufferGeometry,
+  Scene,
+  OrthographicCamera,
+  WebGLMultisampleRenderTarget,
+  DataTexture,
+} from 'three'
 
-class MainScene extends VueGL {
-  private simulation!: GPUSimulation
-  private rafHandler: any
-  private raf?: number
+import vertexShader from '@/lib/vuegl/shaders/raw/gpu-simulation/vsSimulation.glsl'
+import fragmentShader from '@/lib/vuegl/shaders/raw/gpu-simulation/fsSimulation.glsl'
+
+class GPUSimulation {
+  private scene: Scene = new Scene()
+  private camera: OrthographicCamera = new OrthographicCamera(0, 0, 0, 0)
+  private time: number = 0
+  private rt?: WebGLMultisampleRenderTarget
+  private dataTexture?: DataTexture
+  private quadMesh?: Mesh
 
   public uniforms: any
 
-  constructor(width: number, height: number, container: Element) {
-    super(width, height, container)
-    this.rafHandler = this.update.bind(this)
+  constructor(private particleCount: number, private renderer: WebGLRenderer) {
     this.setup()
-    this.update()
   }
 
-  private update(): void {
-    this.raf = requestAnimationFrame(this.rafHandler)
-    this.simulation.update(this.clock.getDelta())
+  public update(dt: number): void {
+    this.time += dt
+
+    this.renderer.render(this.scene, this.camera)
   }
 
   private setup(): void {
-    this.renderer.setClearColor(0x343434)
-    this.simulation = new GPUSimulation(16, this.renderer)
+    this.uniforms = {}
+    const quad: PlaneBufferGeometry = new PlaneBufferGeometry(2, 2, 1, 1)
+    const material: RawShaderMaterial = new RawShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: this.uniforms,
+    })
+
+    this.quadMesh = new Mesh(quad, material)
+    this.scene.add(this.quadMesh)
   }
 }
 
-export default MainScene
+export default GPUSimulation

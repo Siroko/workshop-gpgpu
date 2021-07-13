@@ -16,13 +16,14 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-import { Scene, WebGLRenderer, PerspectiveCamera } from 'three'
+import { Scene, WebGLRenderer, PerspectiveCamera, Clock } from 'three'
 
 export default class VueGL {
   public container: Element
   public scene: Scene = new Scene()
   public renderer: WebGLRenderer
   public camera: PerspectiveCamera
+  public clock: Clock = new Clock(true)
 
   private onResizeHandler: any
   private canvas: HTMLCanvasElement
@@ -40,7 +41,7 @@ export default class VueGL {
     this.height = window.innerHeight
 
     this.renderer = new WebGLRenderer({
-      context: this.gl!!,
+      context: this.gl,
       canvas: this.canvas,
     })
     this.camera = new PerspectiveCamera(60, width / height, 0.1, 100)
