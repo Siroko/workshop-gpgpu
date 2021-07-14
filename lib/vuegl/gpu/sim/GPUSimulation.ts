@@ -24,8 +24,11 @@ import {
   PlaneBufferGeometry,
   Scene,
   OrthographicCamera,
-  WebGLMultisampleRenderTarget,
   DataTexture,
+  NearestFilter,
+  RGBAFormat,
+  FloatType,
+  Vector2,
 } from 'three'
 
 import vertexShader from '@/lib/vuegl/shaders/raw/gpu-simulation/vsSimulation.glsl'
@@ -35,7 +38,6 @@ class GPUSimulation {
   private scene: Scene = new Scene()
   private camera: OrthographicCamera = new OrthographicCamera(0, 0, 0, 0)
   private time: number = 0
-  private rt?: WebGLMultisampleRenderTarget
   private dataTexture?: DataTexture
   private quadMesh?: Mesh
 
@@ -52,7 +54,12 @@ class GPUSimulation {
   }
 
   private setup(): void {
-    this.uniforms = {}
+    // Initialize texture with the initial positions data.
+    this.initializeTextureSource()
+    // Set the data Texture to the shader.
+    this.uniforms = {
+      uPositionsMap: { type: 't', value: this.dataTexture },
+    }
     const quad: PlaneBufferGeometry = new PlaneBufferGeometry(2, 2, 1, 1)
     const material: RawShaderMaterial = new RawShaderMaterial({
       vertexShader,
@@ -62,6 +69,51 @@ class GPUSimulation {
 
     this.quadMesh = new Mesh(quad, material)
     this.scene.add(this.quadMesh)
+  }
+
+  private initializeTextureSource(): void {
+    // We calculate the nearest higher power of 2 number.
+    const textureDimensions: Vector2 = this.getTextureDimensionsPot(
+      this.particleCount
+    )
+    const potParticleCount: number = textureDimensions.x * textureDimensions.y
+
+    // We define a buffer that holds the amount of pixels times 4 (RGBA).
+    const buffer: Float32Array = new Float32Array(potParticleCount * 4)
+    // Then we populate the Array.
+    for (let i = 0; i < potParticleCount; i++) {
+      buffer[i * 4 + 0] = Math.random()
+      buffer[i * 4 + 1] = Math.random()
+      buffer[i * 4 + 2] = Math.random()
+      buffer[i * 4 + 3] = 1
+    }
+    this.dataTexture = new DataTexture(
+      buffer,
+      textureDimensions.x,
+      textureDimensions.y,
+      RGBAFormat,
+      FloatType
+    )
+    this.dataTexture.minFilter = NearestFilter
+    this.dataTexture.magFilter = NearestFilter
+    this.dataTexture.needsUpdate = true
+  }
+
+  // Function that returns the smallest pot texture dimensions to fit the
+  // provided value.
+  private getTextureDimensionsPot(value: number): Vector2 {
+    const v = new Vector2()
+    const potMajor = Math.sqrt(this.getNextPowerOfTwo(value))
+    const potMinor = this.getNextPowerOfTwo(Math.sqrt(value))
+    if (potMajor === potMinor) v.set(potMajor, potMajor)
+    else v.set(potMinor, potMinor * 0.5)
+
+    return v
+  }
+
+  // Function that rounds up to the next power of 2 value.
+  private getNextPowerOfTwo(v: number): number {
+    return Math.pow(2, Math.ceil(Math.log(v) / Math.log(2)))
   }
 }
 

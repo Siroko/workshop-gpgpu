@@ -2,9 +2,10 @@
 precision highp float;
 
 in vec2 vUv;
+uniform sampler2D uPositionsMap;
 out vec4 outColor;
  
 void main() {
-  vec3 c = vec3(vUv.x, vUv.y, 0.0);
-  outColor = vec4(c, 1.0);
+  vec4 c = texture(uPositionsMap, vUv);
+  outColor = c;
 }
