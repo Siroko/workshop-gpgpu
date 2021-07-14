@@ -18,64 +18,72 @@
  */
 
 import {
-  Mesh,
   RawShaderMaterial,
   WebGLRenderer,
-  PlaneBufferGeometry,
-  Scene,
-  OrthographicCamera,
   DataTexture,
   NearestFilter,
   RGBAFormat,
   FloatType,
   Vector2,
+  Clock,
+  Texture,
 } from 'three'
 
 import vertexShader from '@/lib/vuegl/shaders/raw/gpu-simulation/vsSimulation.glsl'
 import fragmentShader from '@/lib/vuegl/shaders/raw/gpu-simulation/fsSimulation.glsl'
+import PingPongRendertarget from './PingPongRendertarget'
 
 class GPUSimulation {
-  private scene: Scene = new Scene()
-  private camera: OrthographicCamera = new OrthographicCamera(0, 0, 0, 0)
-  private time: number = 0
+  public positionsTexture?: Texture
+
   private dataTexture?: DataTexture
-  private quadMesh?: Mesh
+  private pingpong?: PingPongRendertarget
+  private uniforms: any
+  private simulationMaterial?: RawShaderMaterial
 
-  public uniforms: any
-
-  constructor(private particleCount: number, private renderer: WebGLRenderer) {
+  constructor(
+    private particleCount: number,
+    private renderer: WebGLRenderer,
+    private clock: Clock
+  ) {
     this.setup()
   }
 
-  public update(dt: number): void {
-    this.time += dt
-
-    this.renderer.render(this.scene, this.camera)
+  // Update function.
+  public update(): void {
+    // Set the non current pingpong texture s input texture to the material.
+    this.simulationMaterial!!.uniforms.uPositionsMap.value = this.pingpong?.rts[
+      1 - this.pingpong.pingpong
+    ].texture
+    this.simulationMaterial!!.uniforms.uTime.value = this.clock.getElapsedTime()
+    this.positionsTexture = this.pingpong?.pass(this.simulationMaterial!!)
   }
 
   private setup(): void {
+    // We calculate the nearest higher power of 2 number.
+    const textureDimensions: Vector2 = this.getTextureDimensionsPot(
+      this.particleCount
+    )
     // Initialize texture with the initial positions data.
-    this.initializeTextureSource()
+    this.dataTexture = this.initializeTextureSource(textureDimensions)
+    this.pingpong = new PingPongRendertarget(textureDimensions, this.renderer)
+
     // Set the data Texture to the shader.
     this.uniforms = {
       uPositionsMap: { type: 't', value: this.dataTexture },
+      uTime: { type: 'f', value: this.clock.getElapsedTime() },
     }
-    const quad: PlaneBufferGeometry = new PlaneBufferGeometry(2, 2, 1, 1)
-    const material: RawShaderMaterial = new RawShaderMaterial({
+    // Simulation material definition.
+    this.simulationMaterial = new RawShaderMaterial({
       vertexShader,
       fragmentShader,
       uniforms: this.uniforms,
     })
 
-    this.quadMesh = new Mesh(quad, material)
-    this.scene.add(this.quadMesh)
+    this.pingpong.pass(this.simulationMaterial)
   }
 
-  private initializeTextureSource(): void {
-    // We calculate the nearest higher power of 2 number.
-    const textureDimensions: Vector2 = this.getTextureDimensionsPot(
-      this.particleCount
-    )
+  private initializeTextureSource(textureDimensions: Vector2): DataTexture {
     const potParticleCount: number = textureDimensions.x * textureDimensions.y
 
     // We define a buffer that holds the amount of pixels times 4 (RGBA).
@@ -83,20 +91,22 @@ class GPUSimulation {
     // Then we populate the Array.
     for (let i = 0; i < potParticleCount; i++) {
       buffer[i * 4 + 0] = Math.random()
-      buffer[i * 4 + 1] = Math.random()
-      buffer[i * 4 + 2] = Math.random()
+      buffer[i * 4 + 1] = 0
+      buffer[i * 4 + 2] = Math.floor(i / textureDimensions.y)
       buffer[i * 4 + 3] = 1
     }
-    this.dataTexture = new DataTexture(
+    const dataTexture = new DataTexture(
       buffer,
       textureDimensions.x,
       textureDimensions.y,
       RGBAFormat,
       FloatType
     )
-    this.dataTexture.minFilter = NearestFilter
-    this.dataTexture.magFilter = NearestFilter
-    this.dataTexture.needsUpdate = true
+    dataTexture.minFilter = NearestFilter
+    dataTexture.magFilter = NearestFilter
+    dataTexture.needsUpdate = true
+
+    return dataTexture
   }
 
   // Function that returns the smallest pot texture dimensions to fit the
