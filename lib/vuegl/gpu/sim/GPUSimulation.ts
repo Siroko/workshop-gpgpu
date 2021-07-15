@@ -35,6 +35,7 @@ import PingPongRendertarget from './PingPongRendertarget'
 
 class GPUSimulation {
   public positionsTexture?: Texture
+  public textureDimensions?: Vector2
 
   private dataTexture?: DataTexture
   private pingpong?: PingPongRendertarget
@@ -61,12 +62,13 @@ class GPUSimulation {
 
   private setup(): void {
     // We calculate the nearest higher power of 2 number.
-    const textureDimensions: Vector2 = this.getTextureDimensionsPot(
-      this.particleCount
-    )
+    this.textureDimensions = this.getTextureDimensionsPot(this.particleCount)
     // Initialize texture with the initial positions data.
-    this.dataTexture = this.initializeTextureSource(textureDimensions)
-    this.pingpong = new PingPongRendertarget(textureDimensions, this.renderer)
+    this.dataTexture = this.initializeTextureSource(this.textureDimensions)
+    this.pingpong = new PingPongRendertarget(
+      this.textureDimensions,
+      this.renderer
+    )
 
     // Set the data Texture to the shader.
     this.uniforms = {
@@ -90,9 +92,9 @@ class GPUSimulation {
     const buffer: Float32Array = new Float32Array(potParticleCount * 4)
     // Then we populate the Array.
     for (let i = 0; i < potParticleCount; i++) {
-      buffer[i * 4 + 0] = Math.random()
+      buffer[i * 4 + 0] = (Math.random() - 0.5) * 5
       buffer[i * 4 + 1] = 0
-      buffer[i * 4 + 2] = Math.floor(i / textureDimensions.y)
+      buffer[i * 4 + 2] = (Math.random() - 0.5) * 5
       buffer[i * 4 + 3] = 1
     }
     const dataTexture = new DataTexture(

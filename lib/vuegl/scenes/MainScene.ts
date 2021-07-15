@@ -17,40 +17,47 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-import { Mesh, MeshBasicMaterial, PlaneBufferGeometry } from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import VueGL from '../core/VueGL'
-import GPUSimulation from '../gpu/sim/GPUSimulation'
+import GPURenderSimulation from '../gpu/sim/GPURenderSimulation'
 
 class MainScene extends VueGL {
-  private simulation!: GPUSimulation
   private rafHandler: any
   private raf?: number
-  private mesh?: Mesh
-  private material?: MeshBasicMaterial
+  private mesh?: GPURenderSimulation
+  private controls?: OrbitControls
 
   constructor(width: number, height: number, container: Element) {
     super(width, height, container)
     this.rafHandler = this.update.bind(this)
     this.setup()
+    this.setupControls()
     this.update()
   }
 
   private update(): void {
     this.raf = requestAnimationFrame(this.rafHandler)
-    this.simulation.update()
-    this.material!!.map = this.simulation.positionsTexture!!
+    this.mesh?.update()
+    this.controls?.update()
     this.render()
   }
 
   private setup(): void {
     this.renderer.setClearColor(0x343434)
-    this.simulation = new GPUSimulation(16, this.renderer, this.clock)
-    this.material = new MeshBasicMaterial()
-
-    this.mesh = new Mesh(new PlaneBufferGeometry(10, 10, 1, 1), this.material)
+    this.mesh = new GPURenderSimulation(this.renderer, this.clock)
     this.scene.add(this.mesh)
+  }
 
-    this.camera.position.z = 10
+  private setupControls() {
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+    this.controls.dampingFactor = 0.09
+    this.controls.enableDamping = true
+    this.controls.screenSpacePanning = false
+    this.controls.minDistance = 5
+    this.controls.maxDistance = 50
+    this.controls.maxPolarAngle = Math.PI / 2
+    this.controls.rotateSpeed = 0.5
+    this.controls.target.y = 0
   }
 }
 

@@ -8,7 +8,7 @@ out vec4 outColor;
  
 void main() {
   vec4 c = texture(uPositionsMap, vUv);
-  c.y += 0.001;
+  c.y +=  0.01 * sin(c.x) * cos(c.z) * sin(uTime);
   
   outColor = c;
 }

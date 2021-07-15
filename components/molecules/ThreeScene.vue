@@ -3,17 +3,20 @@
 </template>
 
 <script lang="ts">
-import { Vue } from 'nuxt-property-decorator'
+import { Component, Vue } from 'nuxt-property-decorator'
 import MainScene from '@/lib/vuegl/scenes/MainScene'
 
+@Component({})
 class TypescriptClass extends Vue {
-  private scene: MainScene = new MainScene(
-    window.innerWidth,
-    window.innerHeight,
-    this.$refs['webgl-container'] as Element
-  )
+  private scene?: MainScene
 
-  public mounted() {}
+  public mounted() {
+    this.scene = new MainScene(
+      window.innerWidth,
+      window.innerHeight,
+      this.$refs['webgl-container'] as Element
+    )
+  }
 }
 
 export default TypescriptClass

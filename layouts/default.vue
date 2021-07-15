@@ -1,15 +1,13 @@
 <template>
   <div>
     <Nuxt />
-    <div class="container">
-      <three-scene />
-    </div>
+    <three-scene />
   </div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
-import ThreeScene from '~/components/molecule/ThreeScene.vue'
+import ThreeScene from '~/components/molecules/ThreeScene.vue'
 
 export default Vue.extend({
   components: { ThreeScene },
