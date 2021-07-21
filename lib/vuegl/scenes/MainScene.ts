@@ -17,6 +17,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+import { Mesh, MeshBasicMaterial, PlaneBufferGeometry } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import VueGL from '../core/VueGL'
 import GPURenderSimulation from '../gpu/sim/GPURenderSimulation'
@@ -26,6 +27,8 @@ class MainScene extends VueGL {
   private raf?: number
   private mesh?: GPURenderSimulation
   private controls?: OrbitControls
+  private debugMesh?: Mesh
+  private debugMaterial?: MeshBasicMaterial
 
   constructor(width: number, height: number, container: Element) {
     super(width, height, container)
@@ -37,6 +40,11 @@ class MainScene extends VueGL {
 
   private update(): void {
     this.raf = requestAnimationFrame(this.rafHandler)
+    this.debugMesh?.lookAt(this.camera.position)
+    if (this.mesh?.simulation.velocityTexture) {
+      this.debugMaterial!.map = this.mesh?.simulation.velocityTexture
+      this.debugMaterial!.needsUpdate = true
+    }
     this.mesh?.update()
     this.controls?.update()
     this.render()
@@ -46,15 +54,24 @@ class MainScene extends VueGL {
     this.renderer.setClearColor(0x343434)
     this.mesh = new GPURenderSimulation(this.renderer, this.clock)
     this.scene.add(this.mesh)
+
+    const simSize = this.mesh.simulation.textureDimensions!!
+    const ratio = simSize.x / simSize.y
+    this.debugMaterial = new MeshBasicMaterial({})
+    this.debugMesh = new Mesh(
+      new PlaneBufferGeometry(20, 20 / ratio, 1, 1),
+      this.debugMaterial
+    )
+    this.scene.add(this.debugMesh)
   }
 
-  private setupControls() {
+  private setupControls(): void {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
     this.controls.dampingFactor = 0.09
     this.controls.enableDamping = true
     this.controls.screenSpacePanning = false
-    this.controls.minDistance = 5
-    this.controls.maxDistance = 50
+    this.controls.minDistance = 100
+    this.controls.maxDistance = 300
     this.controls.maxPolarAngle = Math.PI / 2
     this.controls.rotateSpeed = 0.5
     this.controls.target.y = 0
