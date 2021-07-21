@@ -27,20 +27,27 @@ import {
   Vector2,
   Clock,
   Texture,
+  Vector4,
 } from 'three'
 
-import vertexShader from '@/lib/vuegl/shaders/raw/gpu-simulation/vsSimulation.glsl'
-import fragmentShader from '@/lib/vuegl/shaders/raw/gpu-simulation/fsSimulation.glsl'
+import vertexShaderQuad from '@/lib/vuegl/shaders/raw/gpu-simulation/vsSimulation.glsl'
+import fragmentShaderPosition from '@/lib/vuegl/shaders/raw/gpu-simulation/fsSimulationPosition.glsl'
+import fragmentShaderVelocity from '@/lib/vuegl/shaders/raw/gpu-simulation/fsSimulationVelocity.glsl'
 import PingPongRendertarget from './PingPongRendertarget'
 
 class GPUSimulation {
   public positionsTexture?: Texture
+  public velocityTexture?: Texture
   public textureDimensions?: Vector2
 
-  private dataTexture?: DataTexture
-  private pingpong?: PingPongRendertarget
-  private uniforms: any
-  private simulationMaterial?: RawShaderMaterial
+  private dataTexturePositions?: DataTexture
+  private dataTextureVelocity?: DataTexture
+  private pingpongPosition?: PingPongRendertarget
+  private pingpongVelocity?: PingPongRendertarget
+  private uniformsPosition: any
+  private uniformsVelocity: any
+  private simulationMaterialPosition?: RawShaderMaterial
+  private simulationMaterialVelocity?: RawShaderMaterial
 
   constructor(
     private particleCount: number,
@@ -52,50 +59,117 @@ class GPUSimulation {
 
   // Update function.
   public update(): void {
-    // Set the non current pingpong texture s input texture to the material.
-    this.simulationMaterial!!.uniforms.uPositionsMap.value = this.pingpong?.rts[
-      1 - this.pingpong.pingpong
-    ].texture
-    this.simulationMaterial!!.uniforms.uTime.value = this.clock.getElapsedTime()
-    this.positionsTexture = this.pingpong?.pass(this.simulationMaterial!!)
+    const deltaTime: number = this.clock.getDelta()
+
+    this.simulationMaterialVelocity!!.uniforms.uPositionsMap.value = this.positionsTexture
+    this.simulationMaterialVelocity!!.uniforms.uVelocityMap.value = this.velocityTexture
+    this.simulationMaterialVelocity!!.uniforms.uTime.value = this.clock.getElapsedTime()
+    this.simulationMaterialVelocity!!.uniforms.uDeltaTime.value = deltaTime
+    this.velocityTexture = this.pingpongVelocity?.pass(
+      this.simulationMaterialVelocity!!
+    )
+
+    this.simulationMaterialPosition!!.uniforms.uPositionsMap.value = this.positionsTexture
+    this.simulationMaterialPosition!!.uniforms.uVelocityMap.value = this.velocityTexture
+    this.simulationMaterialPosition!!.uniforms.uTime.value = this.clock.getElapsedTime()
+    this.simulationMaterialPosition!!.uniforms.uDeltaTime.value = deltaTime
+    this.positionsTexture = this.pingpongPosition?.pass(
+      this.simulationMaterialPosition!!
+    )
   }
 
   private setup(): void {
     // We calculate the nearest higher power of 2 number.
     this.textureDimensions = this.getTextureDimensionsPot(this.particleCount)
-    // Initialize texture with the initial positions data.
-    this.dataTexture = this.initializeTextureSource(this.textureDimensions)
-    this.pingpong = new PingPongRendertarget(
+
+    this.dataTextureVelocity = this.initializeTextureSource(
+      this.textureDimensions,
+      true
+    )
+
+    this.pingpongVelocity = new PingPongRendertarget(
       this.textureDimensions,
       this.renderer
     )
 
-    // Set the data Texture to the shader.
-    this.uniforms = {
-      uPositionsMap: { type: 't', value: this.dataTexture },
+    this.uniformsVelocity = {
+      uVelocityMap: { type: 't', value: this.dataTextureVelocity },
+      uPositionsMap: { type: 't', value: this.dataTexturePositions },
       uTime: { type: 'f', value: this.clock.getElapsedTime() },
+      uDeltaTime: { type: 'f', value: this.clock.getDelta() },
+      uResolution: { type: 'v2', value: this.textureDimensions },
+      uTotalParticles: { type: 'f', value: this.particleCount },
     }
-    // Simulation material definition.
-    this.simulationMaterial = new RawShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      uniforms: this.uniforms,
+
+    // Velocity simulation material definition.
+    this.simulationMaterialVelocity = new RawShaderMaterial({
+      vertexShader: vertexShaderQuad,
+      fragmentShader: fragmentShaderVelocity,
+      uniforms: this.uniformsVelocity,
     })
 
-    this.pingpong.pass(this.simulationMaterial)
+    this.velocityTexture = this.pingpongVelocity.pass(
+      this.simulationMaterialVelocity
+    )
+
+    // Initialize texture with the initial positions data.
+    this.dataTexturePositions = this.initializeTextureSource(
+      this.textureDimensions
+    )
+
+    this.pingpongPosition = new PingPongRendertarget(
+      this.textureDimensions,
+      this.renderer
+    )
+
+    this.uniformsPosition = {
+      uVelocityMap: { type: 't', value: this.dataTextureVelocity },
+      uPositionsMap: { type: 't', value: this.dataTexturePositions },
+      uTime: { type: 'f', value: this.clock.getElapsedTime() },
+      uDeltaTime: { type: 'f', value: this.clock.getDelta() },
+    }
+    // Positions simulation material definition.
+    this.simulationMaterialPosition = new RawShaderMaterial({
+      vertexShader: vertexShaderQuad,
+      fragmentShader: fragmentShaderPosition,
+      uniforms: this.uniformsPosition,
+    })
+
+    this.positionsTexture = this.pingpongPosition.pass(
+      this.simulationMaterialPosition
+    )
   }
 
-  private initializeTextureSource(textureDimensions: Vector2): DataTexture {
+  private initializeTextureSource(
+    textureDimensions: Vector2,
+    force: boolean = false
+  ): DataTexture {
     const potParticleCount: number = textureDimensions.x * textureDimensions.y
 
     // We define a buffer that holds the amount of pixels times 4 (RGBA).
     const buffer: Float32Array = new Float32Array(potParticleCount * 4)
+    const vec: Vector4 = new Vector4()
     // Then we populate the Array.
-    for (let i = 0; i < potParticleCount; i++) {
-      buffer[i * 4 + 0] = (Math.random() - 0.5) * 5
-      buffer[i * 4 + 1] = 0
-      buffer[i * 4 + 2] = (Math.random() - 0.5) * 5
-      buffer[i * 4 + 3] = 1
+    for (let i = 0; i < this.particleCount; i++) {
+      if (!force) {
+        vec.set(
+          (Math.random() - 0.5) * 70,
+          (Math.random() - 0.5) * 30,
+          (Math.random() - 0.5) * 70,
+          Math.random() + 0.2
+        )
+      } else {
+        vec.set(
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+          1.0
+        )
+      }
+      buffer[i * 4 + 0] = vec.x
+      buffer[i * 4 + 1] = vec.y
+      buffer[i * 4 + 2] = vec.z
+      buffer[i * 4 + 3] = vec.w
     }
     const dataTexture = new DataTexture(
       buffer,

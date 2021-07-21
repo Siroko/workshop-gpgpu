@@ -32,7 +32,8 @@ import fragmentShader from '@/lib/vuegl/shaders/raw/gpu-rendering/fsPoints.glsl'
 import GPUSimulation from './GPUSimulation'
 
 class GPURenderSimulation extends Object3D {
-  private simulation: GPUSimulation
+  public simulation: GPUSimulation
+
   private material?: RawShaderMaterial
   private uniforms: any
 
@@ -73,7 +74,7 @@ class GPURenderSimulation extends Object3D {
     // Set the data Texture to the shader.
     this.uniforms = {
       uPositionsTexture: { type: 't', value: this.simulation.positionsTexture },
-      uSize: { type: 'f', value: 10 },
+      uSize: { type: 'f', value: 2 },
     }
     this.material = new RawShaderMaterial({
       vertexShader,

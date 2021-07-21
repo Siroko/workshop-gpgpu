@@ -44,7 +44,7 @@ export default class VueGL {
       context: this.gl,
       canvas: this.canvas,
     })
-    this.camera = new PerspectiveCamera(60, width / height, 0.1, 100)
+    this.camera = new PerspectiveCamera(60, width / height, 0.1, 10000)
     this.container.appendChild(this.renderer.domElement)
 
     this.addEvents()
