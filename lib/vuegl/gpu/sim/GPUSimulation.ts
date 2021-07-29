@@ -33,6 +33,7 @@ import {
 import vertexShaderQuad from '@/lib/vuegl/shaders/raw/gpu-simulation/vsSimulation.glsl'
 import fragmentShaderPosition from '@/lib/vuegl/shaders/raw/gpu-simulation/fsSimulationPosition.glsl'
 import fragmentShaderVelocity from '@/lib/vuegl/shaders/raw/gpu-simulation/fsSimulationVelocity.glsl'
+import { getTextureDimensionsPot } from '@siroko/math'
 import PingPongRendertarget from './PingPongRendertarget'
 
 class GPUSimulation {
@@ -97,7 +98,8 @@ class GPUSimulation {
 
   private setup(): void {
     // We calculate the nearest higher power of 2 number.
-    this.textureDimensions = this.getTextureDimensionsPot(this.particleCount)
+    const dimensions = getTextureDimensionsPot(this.particleCount)
+    this.textureDimensions = new Vector2(dimensions[0], dimensions[1])
 
     this.dataTextureVelocity = this.initializeTextureSource(
       this.textureDimensions,
@@ -178,7 +180,7 @@ class GPUSimulation {
       if (!force) {
         vec.set(
           (Math.random() - 0.5) * 440,
-          (Math.random() - 0.5) * 200,
+          0,
           (Math.random() - 0.5) * 440,
           Math.random()
         )
@@ -202,23 +204,6 @@ class GPUSimulation {
     dataTexture.needsUpdate = true
 
     return dataTexture
-  }
-
-  // Function that returns the smallest pot texture dimensions to fit the
-  // provided value.
-  private getTextureDimensionsPot(value: number): Vector2 {
-    const v = new Vector2()
-    const potMajor = Math.sqrt(this.getNextPowerOfTwo(value))
-    const potMinor = this.getNextPowerOfTwo(Math.sqrt(value))
-    if (potMajor === potMinor) v.set(potMajor, potMajor)
-    else v.set(potMinor, potMinor * 0.5)
-
-    return v
-  }
-
-  // Function that rounds up to the next power of 2 value.
-  private getNextPowerOfTwo(v: number): number {
-    return Math.pow(2, Math.ceil(Math.log(v) / Math.log(2)))
   }
 }
 
