@@ -19,45 +19,47 @@
 
 import { Mesh, MeshBasicMaterial, PlaneBufferGeometry } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { Pane } from 'tweakpane'
 import VueGL from '../core/VueGL'
 import GPURenderSimulation from '../gpu/sim/GPURenderSimulation'
 
 class MainScene extends VueGL {
   private rafHandler: any
   private raf?: number
-  private mesh?: GPURenderSimulation
+  private gpuRenderable?: GPURenderSimulation
   private controls?: OrbitControls
   private debugMesh?: Mesh
   private debugMaterial?: MeshBasicMaterial
-  private debug: boolean = false
+  private debug: boolean = true
 
   constructor(width: number, height: number, container: Element) {
     super(width, height, container)
     this.rafHandler = this.update.bind(this)
     this.setup()
     this.setupControls()
+    this.setupGui()
     this.update()
   }
 
   private update(): void {
     this.raf = requestAnimationFrame(this.rafHandler)
     this.debugMesh?.lookAt(this.camera.position)
-    if (this.mesh?.simulation.velocityTexture && this.debug) {
-      this.debugMaterial!.map = this.mesh?.simulation.velocityTexture
+    if (this.gpuRenderable?.simulation.velocityTexture && this.debug) {
+      this.debugMaterial!.map = this.gpuRenderable?.simulation.velocityTexture
       this.debugMaterial!.needsUpdate = true
     }
-    this.mesh?.update()
+    this.gpuRenderable?.update()
     this.controls?.update()
     this.render()
   }
 
   private setup(): void {
     this.renderer.setClearColor(0x343434)
-    this.mesh = new GPURenderSimulation(this.renderer, this.clock)
-    this.scene.add(this.mesh)
+    this.gpuRenderable = new GPURenderSimulation(this.renderer, this.clock)
+    this.scene.add(this.gpuRenderable)
 
     if (this.debug) {
-      const simSize = this.mesh.simulation.textureDimensions!!
+      const simSize = this.gpuRenderable.simulation.textureDimensions!!
       const ratio = simSize!.x / simSize!.y
       this.debugMaterial = new MeshBasicMaterial({})
       this.debugMesh = new Mesh(
@@ -78,6 +80,47 @@ class MainScene extends VueGL {
     this.controls.maxPolarAngle = Math.PI / 2
     this.controls.rotateSpeed = 0.5
     this.controls.target.y = 0
+  }
+
+  private setupGui() {
+    const pane = new Pane({ expanded: true })
+    pane.element.parentElement!.style.display = 'contents'
+
+    pane.addInput(this.gpuRenderable!.simulation, 'alignFactor', {
+      min: 0,
+      max: 3,
+      step: 0.001,
+    })
+    pane.addInput(this.gpuRenderable!.simulation, 'cohesionFactor', {
+      min: 0,
+      max: 3,
+      step: 0.001,
+    })
+    pane.addInput(this.gpuRenderable!.simulation, 'separationFactor', {
+      min: 0,
+      max: 30,
+      step: 0.001,
+    })
+    pane.addInput(this.gpuRenderable!.simulation, 'forceToCenterFactor', {
+      min: 0,
+      max: 10.0,
+      step: 0.00001,
+    })
+    pane.addInput(this.gpuRenderable!.simulation, 'maxSpeed', {
+      min: 0,
+      max: 40,
+      step: 0.001,
+    })
+    pane.addInput(this.gpuRenderable!.simulation, 'maxForce', {
+      min: 0,
+      max: 40,
+      step: 0.001,
+    })
+    pane.addInput(this.gpuRenderable!.simulation, 'range', {
+      min: 0,
+      max: 20,
+      step: 0.001,
+    })
   }
 }
 

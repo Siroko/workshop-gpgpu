@@ -39,7 +39,7 @@ class GPURenderSimulation extends Object3D {
 
   constructor(private renderer: WebGLRenderer, private clock: Clock) {
     super()
-    const totalParticles: number = 16
+    const totalParticles: number = 8192
     this.simulation = new GPUSimulation(
       totalParticles,
       this.renderer,
@@ -74,7 +74,7 @@ class GPURenderSimulation extends Object3D {
     // Set the data Texture to the shader.
     this.uniforms = {
       uPositionsTexture: { type: 't', value: this.simulation.positionsTexture },
-      uSize: { type: 'f', value: 2 },
+      uSize: { type: 'f', value: 25 },
     }
     this.material = new RawShaderMaterial({
       vertexShader,

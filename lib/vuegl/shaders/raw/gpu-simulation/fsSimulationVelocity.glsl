@@ -25,15 +25,18 @@ in vec2 vUv;
 
 uniform float uTime;
 uniform float uTotalParticles;
+uniform float uAlignFactor;
+uniform float uCohesionFactor;
+uniform float uSeparationFactor;
+uniform float uForceToCenterFactor;
+uniform float uRange;
+uniform float uMaxSpeed;
+uniform float uMaxForce;
 uniform vec2 uResolution;
 uniform sampler2D uPositionsMap;
 uniform sampler2D uVelocityMap;
 
 out vec4 outColor;
-
-#define EPSILON 0.00001f
-#define MAX_SPEED 10.0f
-#define MAX_FORCE 0.5f
 
 // Function that limits the magnitude of a vector.
 vec3 limit(vec3 v, float limit) {
@@ -43,14 +46,21 @@ vec3 limit(vec3 v, float limit) {
   return v;
 }
 
+float getTypeFactor(float v) {
+  float typeFactor = mix(0.0, 0.25, step(0.25, v));
+  typeFactor = mix(typeFactor, 0.5, step(0.5, v));
+  typeFactor = mix(typeFactor, 0.75, step(0.75, v));
+  typeFactor = mix(typeFactor, 1.0, step(1.0, v));
+
+  return typeFactor;
+}
+
 void main() {
   // Get current vehicle velocity.
   vec4 meVelocity = texture(uVelocityMap, vUv);
   // Get current vehicle position.
   vec4 mePosition = texture(uPositionsMap, vUv);
 
-  // Define the current range where vehicles will be inside of perception zone.
-  float RANGE = 10.0;
   // How many vehicles are "in range".
   int inrange = 0;
   // Define current acceleration starting at 0.0.
@@ -72,54 +82,50 @@ void main() {
     // We discard our own vehicle
     if(current != vUv) {
       // Get the position of the other vehicle.
-      vec3 opos = texture(uPositionsMap, current).xyz;
+      vec4 opos = texture(uPositionsMap, current);
       // Get the velocity of the other vehicle.
-      vec3 ovel = texture(uVelocityMap, current).xyz;
+      vec4 ovel = texture(uVelocityMap, current);
       // Calculate the distance to the other vehicle.
-      float d = distance(mePosition.xyz, opos);
+      float d = distance(mePosition.xyz, opos.xyz);
       // Test if the other vehicle is inside the range.
-      if( d != 0.0 && d < RANGE) {
+      if( d != 0.0 && d < uRange) {
         // Increment the range variable so we can normalize later on.
         inrange++;
         // Increment the align force.
-        align += ovel;
+        align += ovel.xyz;
         // Increment the coheseion.
-        cohesion += opos;
+        cohesion += opos.xyz;
         // Increment the separation force (inversely proportional to the distance)
-        separation += normalize(mePosition.xyz - opos) / d * d;
+        separation += (mePosition.xyz - opos.xyz) / (d * d);
       }
     }
   }
 
-  float dc = distance(vec3(0.0), mePosition.xyz);
-  vec3 forceToCenter = normalize(vec3(0.0) - mePosition.xyz) * (dc) * 0.01;
-  acc += forceToCenter;
-
   // If there is any vehicle inside the range.
   if (inrange > 0) {
-    // We normalize the align force and calculate steering (desiredVelocity - currentVelocity)
-    vec3 steeringAlign = normalize(align / float(inrange)) * MAX_SPEED - meVelocity.xyz;
-    // We limit the align force
-    steeringAlign = limit(steeringAlign, MAX_FORCE);
-    // We normalize the cohesion force and calculate steering (desiredVelocity - currentVelocity)
-    vec3 steeringCohesion = normalize(cohesion / float(inrange) - mePosition.xyz) * MAX_SPEED - meVelocity.xyz;
-    // We limit the cohesion force
-    steeringCohesion = limit(steeringCohesion, MAX_FORCE);
-    // We normalize the separation force and calculate steering (desiredVelocity - currentVelocity)
-    vec3 steeringSeparation = normalize(separation) * MAX_SPEED - meVelocity.xyz;
-    // We limit the separation force
-    steeringSeparation = limit(steeringSeparation, MAX_FORCE);
+    // We normalize the align force and calculate steering (desiredVelocity - currentVelocity).
+    vec3 steeringAlign = normalize(align / float(inrange)) * uMaxSpeed - meVelocity.xyz;
+    // We limit the align force.
+    steeringAlign = limit(steeringAlign, uMaxForce);
+    // We normalize the cohesion force and calculate steering (desiredVelocity - currentVelocity).
+    vec3 steeringCohesion = (normalize(cohesion / float(inrange) - mePosition.xyz) * uMaxSpeed) - meVelocity.xyz;
+    // We limit the cohesion force.
+    steeringCohesion = limit(steeringCohesion, uMaxForce);
+    // We normalize the separation force and calculate steering (desiredVelocity - currentVelocity).
+    vec3 steeringSeparation = normalize(separation) * uMaxSpeed - meVelocity.xyz;
+    // We limit the separation force.
+    steeringSeparation = limit(steeringSeparation, uMaxForce);
 
     // Add all the forces to the acceleration.
-    acc += steeringAlign;
-    acc += steeringCohesion;
-    acc += steeringSeparation;
+    acc += steeringAlign * uAlignFactor;
+    acc += steeringCohesion * uCohesionFactor;
+    acc += steeringSeparation * uSeparationFactor;
   }
 
   // Add acceleration (composite of all the steering forces) to the current velocity.
   meVelocity.xyz += acc;
-  // Limit velocity to max speed
-  meVelocity.xyz = limit(meVelocity.xyz, MAX_SPEED);
+  // Limit velocity to max speed.
+  meVelocity.xyz = limit(meVelocity.xyz, uMaxSpeed);
   // Write the updated velocity to the FBO.
   outColor = meVelocity;
 }

@@ -40,6 +40,14 @@ class GPUSimulation {
   public velocityTexture?: Texture
   public textureDimensions?: Vector2
 
+  public alignFactor: number = 2.32
+  public cohesionFactor: number = 1.962
+  public separationFactor: number = 3.312
+  public forceToCenterFactor: number = 1.0
+  public range: number = 6.38
+  public maxSpeed: number = 10
+  public maxForce: number = 0.448
+
   private dataTexturePositions?: DataTexture
   private dataTextureVelocity?: DataTexture
   private pingpongPosition?: PingPongRendertarget
@@ -65,6 +73,15 @@ class GPUSimulation {
     this.simulationMaterialVelocity!!.uniforms.uVelocityMap.value = this.velocityTexture
     this.simulationMaterialVelocity!!.uniforms.uTime.value = this.clock.getElapsedTime()
     this.simulationMaterialVelocity!!.uniforms.uDeltaTime.value = deltaTime
+
+    this.simulationMaterialVelocity!!.uniforms.uAlignFactor.value = this.alignFactor
+    this.simulationMaterialVelocity!!.uniforms.uCohesionFactor.value = this.cohesionFactor
+    this.simulationMaterialVelocity!!.uniforms.uSeparationFactor.value = this.separationFactor
+    this.simulationMaterialVelocity!!.uniforms.uForceToCenterFactor.value = this.forceToCenterFactor
+    this.simulationMaterialVelocity!!.uniforms.uRange.value = this.range
+    this.simulationMaterialVelocity!!.uniforms.uMaxSpeed.value = this.maxSpeed
+    this.simulationMaterialVelocity!!.uniforms.uMaxForce.value = this.maxForce
+
     this.velocityTexture = this.pingpongVelocity?.pass(
       this.simulationMaterialVelocity!!
     )
@@ -99,6 +116,13 @@ class GPUSimulation {
       uDeltaTime: { type: 'f', value: this.clock.getDelta() },
       uResolution: { type: 'v2', value: this.textureDimensions },
       uTotalParticles: { type: 'f', value: this.particleCount },
+      uAlignFactor: { type: 'f', value: this.alignFactor },
+      uCohesionFactor: { type: 'f', value: this.cohesionFactor },
+      uSeparationFactor: { type: 'f', value: this.separationFactor },
+      uForceToCenterFactor: { type: 'f', value: this.forceToCenterFactor },
+      uRange: { type: 'f', value: this.range },
+      uMaxSpeed: { type: 'f', value: this.maxSpeed },
+      uMaxForce: { type: 'f', value: this.maxForce },
     }
 
     // Velocity simulation material definition.
@@ -153,18 +177,13 @@ class GPUSimulation {
     for (let i = 0; i < this.particleCount; i++) {
       if (!force) {
         vec.set(
-          (Math.random() - 0.5) * 70,
-          (Math.random() - 0.5) * 30,
-          (Math.random() - 0.5) * 70,
-          Math.random() + 0.2
+          (Math.random() - 0.5) * 440,
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 440,
+          Math.random()
         )
       } else {
-        vec.set(
-          Math.random() - 0.5,
-          Math.random() - 0.5,
-          Math.random() - 0.5,
-          1.0
-        )
+        vec.set(Math.random() - 0.5, 0, Math.random() - 0.5, 1.0)
       }
       buffer[i * 4 + 0] = vec.x
       buffer[i * 4 + 1] = vec.y
