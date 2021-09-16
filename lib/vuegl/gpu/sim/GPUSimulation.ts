@@ -43,11 +43,13 @@ class GPUSimulation {
 
   public alignFactor: number = 2.32
   public cohesionFactor: number = 1.962
-  public separationFactor: number = 3.312
-  public forceToCenterFactor: number = 1.0
-  public range: number = 6.38
-  public maxSpeed: number = 10
-  public maxForce: number = 0.448
+  public separationFactor: number = 2.091
+  public forceToCenterFactor: number = 0.1256
+  public rangeAlign: number = 6.38
+  public rangeCohesion: number = 6.38
+  public range: number = 5.38
+  public maxSpeed: number = 70
+  public maxForce: number = 4.448
 
   private dataTexturePositions?: DataTexture
   private dataTextureVelocity?: DataTexture

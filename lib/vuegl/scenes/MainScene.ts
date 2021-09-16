@@ -97,8 +97,8 @@ class MainScene extends VueGL {
       step: 0.001,
     })
     pane.addInput(this.gpuRenderable!.simulation, 'separationFactor', {
-      min: 0,
-      max: 30,
+      min: 1,
+      max: 10,
       step: 0.001,
     })
     pane.addInput(this.gpuRenderable!.simulation, 'forceToCenterFactor', {
@@ -108,7 +108,7 @@ class MainScene extends VueGL {
     })
     pane.addInput(this.gpuRenderable!.simulation, 'maxSpeed', {
       min: 0,
-      max: 40,
+      max: 400,
       step: 0.001,
     })
     pane.addInput(this.gpuRenderable!.simulation, 'maxForce', {

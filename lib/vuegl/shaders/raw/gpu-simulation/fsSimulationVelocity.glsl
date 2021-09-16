@@ -101,6 +101,7 @@ void main() {
     }
   }
 
+float typeFactor = getTypeFactor(mePosition.w) + 1.0;
   // If there is any vehicle inside the range.
   if (inrange > 0) {
     // We normalize the align force and calculate steering (desiredVelocity - currentVelocity).
@@ -112,15 +113,20 @@ void main() {
     // We limit the cohesion force.
     steeringCohesion = limit(steeringCohesion, uMaxForce);
     // We normalize the separation force and calculate steering (desiredVelocity - currentVelocity).
-    vec3 steeringSeparation = normalize(separation) * uMaxSpeed - meVelocity.xyz;
+    vec3 steeringSeparation = normalize(separation / float(inrange)) * uMaxSpeed - meVelocity.xyz;
     // We limit the separation force.
     steeringSeparation = limit(steeringSeparation, uMaxForce);
 
     // Add all the forces to the acceleration.
-    acc += steeringAlign * uAlignFactor;
-    acc += steeringCohesion * uCohesionFactor;
-    acc += steeringSeparation * uSeparationFactor;
+    acc += steeringAlign * uAlignFactor * typeFactor;
+    acc += steeringCohesion * uCohesionFactor * typeFactor;
+    acc += steeringSeparation * uSeparationFactor * typeFactor;
   }
+
+  float strengthType = typeFactor * 50.0;
+  float distanceToCenter = distance(vec3(0.0), mePosition.xyz);
+  float influenceZone = smoothstep(-3.0 * strengthType, 500.0, distanceToCenter);
+  acc += (normalize(vec3(0.0) - mePosition.xyz) * uForceToCenterFactor * influenceZone * strengthType);
 
   // Add acceleration (composite of all the steering forces) to the current velocity.
   meVelocity.xyz += acc;

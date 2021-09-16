@@ -34,12 +34,16 @@ vec3 ComputeBaseNormal(vec2 uv)
    return length(p) - r;
  }
 
-mat3 getTBNMatrix(vec3 tang, vec3 quadPosition) {
-  vec3 normal = normalize(quadPosition - cameraPosition);
-  vec3 tangent = tang;
-  vec3 bitangent = cross(tangent, normal);
+mat3 getTBNMatrix(vec3 quadPosition) {
+  mat3 inverseNormalMatrix = inverse(vNormalMatrix);
+  vec3 normal = vNormalMatrix * normalize(cameraPosition - quadPosition);
+  vec3 up = vec3(0.0, 1.0, 0.0);
+  vec3 bitangent = cross(up, normal);
+  bitangent = inverseNormalMatrix * bitangent;
+  normal = inverseNormalMatrix * normal;
+  vec3 tangent = cross(normal, bitangent);
 
-  return mat3(normal, tangent, bitangent);
+  return mat3(tangent, bitangent, normal);
 }
 
 void main() {
@@ -49,8 +53,8 @@ void main() {
   if(d > -0.1) discard;
 
   vec3 normal = normalize(ComputeBaseNormal(gl_PointCoord));
-  mat3 tbn = getTBNMatrix(normal, vPosition.xyz);
-  normal = tbn * normal;
+  mat3 tbn = getTBNMatrix(vPosition.xyz);
+  normal = normal;
   
   vec4 c1 = vec4(1.0, 0.5, 0.0, 1.0);
   vec4 c2 = vec4(0.0, 1.0, 1.0, 1.0);
@@ -62,11 +66,12 @@ void main() {
   fColor = mix(fColor, c4, step(0.75, vPosition.a));
 
   vec3 pointLightPosition = vec3(10.0, -10.0, 0.0);
-  vec3 lightDirection = normalize(pointLightPosition);
+  vec3 lightDirection = tbn * normalize(pointLightPosition);
   float lambert = max(dot(normal, lightDirection), 0.0);
   fColor.rgb *= lambert;
   
+  vec3 flatNormal = vNormalMatrix * normalize(cameraPosition - vPosition.xyz);
   outColor = fColor;
-  //outColor.xyz = normal;
+  //outColor.xyz = flatNormal;
   //outColor = vec4(vPosition.xyz, 1.0);
 }
